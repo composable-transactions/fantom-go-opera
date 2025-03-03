@@ -291,9 +291,13 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
 		if isMultiCall {
+			// Call the Composable Transaction handler
+			// Currently a pre-deployed contract at 0xD8a63501745e672dbCBb9B061f57b0163e3222d8
+			// But it could also have its code embedded on this executable
 			multicallAddress := common.Address{0xD8, 0xa6, 0x35, 0x01, 0x74, 0x5e, 0x67, 0x2d, 0xbC, 0xBb, 0x9B, 0x06, 0x1f, 0x57, 0xb0, 0x16, 0x3e, 0x32, 0x22, 0xd8}
 			ret, st.gas, vmerr = st.evm.CallCode(sender, multicallAddress, st.data, st.gas, st.value)
 		} else {
+			// Call the contract directly
 			ret, st.gas, vmerr = st.evm.Call(sender, st.to(), st.data, st.gas, st.value)
 		}
 	}
