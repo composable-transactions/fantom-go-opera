@@ -262,6 +262,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
 	contractCreation := msg.To() == nil
+	isMultiCall      := msg.To() != nil && *msg.To() == msg.From()
 
 	london := st.evm.ChainConfig().IsLondon(st.evm.Context.BlockNumber)
 
@@ -289,7 +290,12 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-		ret, st.gas, vmerr = st.evm.Call(sender, st.to(), st.data, st.gas, st.value)
+		if isMultiCall {
+			multicallAddress := common.Address{0xD8, 0xa6, 0x35, 0x01, 0x74, 0x5e, 0x67, 0x2d, 0xbC, 0xBb, 0x9B, 0x06, 0x1f, 0x57, 0xb0, 0x16, 0x3e, 0x32, 0x22, 0xd8}
+			ret, st.gas, vmerr = st.evm.CallCode(sender, multicallAddress, st.data, st.gas, st.value)
+		} else {
+			ret, st.gas, vmerr = st.evm.Call(sender, st.to(), st.data, st.gas, st.value)
+		}
 	}
 	// use 10% of not used gas
 	if !st.internal() {
